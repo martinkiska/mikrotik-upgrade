@@ -1,0 +1,9 @@
+:local deviceRbCurrentFw 		[/system routerboard get current-firmware];
+:local deviceRbUpgradeFw 		[/system routerboard get upgrade-firmware];
+
+if ($deviceRbCurrentFw != $deviceRbUpgradeFw) do={
+	:log info ("Upgrading firmware on router $[/system identity get name] from $[/system routerboard get current-firmware] to $[/system routerboard get upgrade-firmware]")
+	/system reboot;
+	}  else={
+		:log info "It appers that your routerboard is already up to date, skipping this step.";
+};

@@ -1,0 +1,46 @@
+
+#####
+#If you don't want to be notified by mail just comment /tool e-mail lines of the script.
+#####
+
+:local Mail "xxyyzz@gmail.com"; #gmail account
+:local EncryptPassword "XXX"; #password for backup encryption
+:local PasswordMail "YYY"; #App Password from gmail account
+:local Channel "stable";
+:local SmtpGmail "smtp.gmail.com"
+
+######
+
+:local MyFile "my.cfg";
+:local MyFileBackup "my.cfg.backup";
+:local Subject "Routerboard updated";
+:local SmtpServer "";
+:local SmtpPort 465;
+:local UseTLS "yes";
+
+
+/system package update set channel=$Channel;
+:log info "Channel configured to $Channel.";
+:delay 1s;
+
+/system package update check-for-updates once
+:delay 2s;
+:local CurrentFw [/system package update get installed-version];
+:local LatestFw [/system package update get latest-version];
+:local Body ("Winbox was updated in channel '". $Channel ."' from version: '". $CurrentFw . "' to version: '". $LatestFw."'.")
+
+#configure email smtp server 
+/tool e-mail set address=$SmtpGmail port=587 tls=starttls
+
+#select correct channel
+:if ( [/system package update get status] = "New version is available") do={ 
+   /;
+   /system backup save encryption=aes-sha256 name=$MyFile password=$EncryptPassword;
+   :delay 4000ms;
+   :log info "file exported";
+   /tool e-mail send to=$Mail user=$Mail password=$PasswordMail from=$Mail subject=$Subject body=$Body file=$MyFileBackup;
+   :delay 2000ms;
+   :log info "Email was sent";
+   /system package update install; 
+   :log warning "New version was installed";
+}

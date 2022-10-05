@@ -1,0 +1,76 @@
+/system scheduler
+add interval=1d name=auto-upgrade-scheduler on-event=auto-upgrade policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon \
+    start-date=oct/25/2020 start-time=02:00:00
+add interval=1d name=routerboard-upgrade-scheduler on-event=\
+    routerboard-upgrade policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon \
+    start-date=nov/01/2020 start-time=02:10:00
+/system script
+add dont-require-permissions=no name=auto-upgrade owner=admin policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="\
+    \r\
+    \n#####\r\
+    \n\r\
+    \n:local Mail \"XXX@gmail.com\";\r\
+    \n:local EncryptPassword \"YYY\";\r\
+    \n:local PasswordMail \"ZZZ\";\r\
+    \n:local Channel \"stable\";\r\
+    \n:local SmtpGmail \"smtp.gmail.com\"\r\
+    \n\r\
+    \n######\r\
+    \n\r\
+    \n:local MyFile \"my.cfg\";\r\
+    \n:local MyFileBackup \"my.cfg.backup\";\r\
+    \n:local Subject \"Routerboard updated\";\r\
+    \n:local SmtpServer \"\";\r\
+    \n:local SmtpPort 465;\r\
+    \n:local UseTLS \"yes\";\r\
+    \n\r\
+    \n\r\
+    \n/system package update set channel=\$Channel;\r\
+    \n:log info \"Channel configured to \$Channel.\";\r\
+    \n:delay 1s;\r\
+    \n\r\
+    \n/system package update check-for-updates once\r\
+    \n:delay 2s;\r\
+    \n:local CurrentFw [/system package update get installed-version];\r\
+    \n:local LatestFw [/system package update get latest-version];\r\
+    \n:local Body (\"Winbox was updated in channel '\". \$Channel .\"' from ve\
+    rsion: '\". \$CurrentFw . \"' to version: '\". \$LatestFw.\"'.\")\r\
+    \n\r\
+    \n#configure email smtp server \r\
+    \n/tool e-mail set address=\$SmtpGmail port=587 tls=starttls\r\
+    \n\r\
+    \n#select correct channel\r\
+    \n:if ( [/system package update get status] = \"New version is available\"\
+    ) do={ \r\
+    \n   /;\r\
+    \n   /system backup save encryption=aes-sha256 name=\$MyFile password=\$En\
+    cryptPassword;\r\
+    \n   :delay 4000ms;\r\
+    \n   :log info \"file exported\";\r\
+    \n   /tool e-mail send to=\$Mail user=\$Mail password=\$PasswordMail from=\
+    \$Mail subject=\$Subject body=\$Body file=\$MyFileBackup;\r\
+    \n   :delay 2000ms;\r\
+    \n   :log info \"Email was sent\";\r\
+    \n   /system package update install; \r\
+    \n   :log warning \"New version was installed\";\r\
+    \n}"
+add dont-require-permissions=no name=routerboard-upgrade owner=admin policy=\
+    ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source=":\
+    local deviceRbCurrentFw \t\t[/system routerboard get current-firmware];\r\
+    \n:local deviceRbUpgradeFw \t\t[/system routerboard get upgrade-firmware];\
+    \r\
+    \n\r\
+    \nif (\$deviceRbCurrentFw != \$deviceRbUpgradeFw) do={\r\
+    \n\t:log info (\"Upgrading firmware on router \$[/system identity get name\
+    ] from \$[/system routerboard get current-firmware] to \$[/system routerbo\
+    ard get upgrade-firmware]\")\r\
+    \n\t/system reboot;\r\
+    \n\t}  else={\r\
+    \n\t\t:log info \"It appers that your routerboard is already up to date, s\
+    kipping this step.\";\r\
+    \n};"
+/tool e-mail
+set address=smtp.gmail.com from="" port=587 tls=starttls
