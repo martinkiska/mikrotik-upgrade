@@ -30,7 +30,7 @@
 :local Body ("Winbox was updated in channel '". $Channel ."' from version: '". $CurrentFw . "' to version: '". $LatestFw."'.")
 
 #configure email smtp server 
-/tool e-mail set address=$SmtpGmail port=587 tls=starttls
+/tool e-mail set server=$SmtpGmail port=587 tls=starttls
 
 #select correct channel
 :if ( [/system package update get status] = "New version is available") do={ 
